@@ -1,0 +1,175 @@
+<html>
+
+<head>
+    <title>Multiple files upload in Django - example</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="description" content="multiple files upload in Django">
+
+    <style>
+    /*autoadjust border-box*/  
+    * {
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+    }
+    #info{
+        border: 1px solid black;
+        min-height:1.5em;
+    }
+    .row{
+	clear:all;
+	overflow:auto;
+	margin-top: 10px;
+    }
+    .col1{
+	float:left;
+	border: 1px solid black;
+	margin-left:1%;
+	width: 49%;
+	height: 300px;
+	overflow: auto;
+    }
+    .col2{
+	float:left;
+	border: 1px solid black;
+	margin-left:1%;
+	width:49%;
+	height: 300px;
+	overflow:auto;
+    }
+    #photo{
+	width:49%;
+    }
+    </style>
+</head>
+
+<body>
+    {% csrf_token %}
+    <pre id="info"></pre><br>
+    <input id="fileInput" type="file" name="file" multiple accept="image/*"><br>
+    <button id="submit" type="button">Submit</button>
+
+    <br>
+
+    <div class="row">
+    <div id="col1" class="col1"></div>    <div id="col1" class="col2"><img id="photo"></div>
+    </div>
+</body>
+
+<script>
+
+function getXHR(){
+    var xhr = false;
+
+    if (window.XMLHttpRequest)
+        xhr = new XMLHttpRequest();  //Firefox, Safari, >= IE 7 ...
+    else if (window.ActiveXObject){  //IE
+        try {  xhr = new ActiveXObject('Microsoft.XMLHTTP');   }
+        catch(e) {                   //< IE 7
+            try {  xhr = new ActiveXObject("Msxml2.XMLHTTP");  }
+            catch(e) {}
+        }
+    }
+
+    if(!xhr){ 
+	alert("Ajax is not supported by your browser!");
+    }
+
+    return xhr;
+}
+
+var info = document.getElementById("info");
+var input = document.getElementById("fileInput");
+var submit = document.getElementById("submit");
+var photo = document.getElementById("photo");
+
+function refresh(){
+    var xhr = new getXHR();
+    xhr.onload = function() {
+        if (xhr.status === 200){
+	    var rows = JSON.parse(xhr.responseText);
+	    var displayData = "";
+	    for(var i=0; i<rows.length; i++){
+		var name = rows[i].name;
+		var link = "{{media}}"+"upload/documents/"+name;
+	 	var a = document.createElement("a");
+		a.href = link;
+		var text = document.createTextNode(name);
+		a.appendChild(text);
+		document.getElementById("col1").appendChild(a);
+		var br = document.createElement("br");
+		document.getElementById("col1").appendChild(br);
+
+		a.onclick = function(event){
+			event.preventDefault();
+			photo.src = this.href;
+		}
+	    }
+	    
+        }
+        else{
+            document.getElementById("col1").innerHTML = "Error " + xhr.status;   debug0(xhr)
+        }
+    }
+    xhr.onerror = function() {
+        document.getElementById("col1").innerHTML = "Error: No response from server.";
+    }
+    var url = "/upload/list/";
+    xhr.open('GET', url);
+    xhr.send(null)
+}
+refresh();
+
+input.onchange = function(){
+    var rows = "Files loaded in browser:<br><br>";
+    var files = input.files;
+    for(var i=0; i<files.length; i++) {
+        var file = files[i];
+	var row = "File " + i.toString() + " : " + file.name + " " + file.size + " bytes  " + file.type + "<br>";        
+	rows += row;
+    }
+    info.innerHTML = rows;
+}
+
+submit.onclick = function(){
+    var files = input.files;   
+
+    if(files.length == 0){
+	alert("Select some files").
+	return;
+    }
+
+    var fd = new FormData();
+    for(var i=0; i<files.length; i++) {
+        var file = files[i];
+        fd.append("file"+i.toString(), file);
+    }
+    fd.append("n",i.toString());
+
+    var xhr = new getXHR();
+    xhr.onload = function() {
+        if (xhr.status === 200){
+            document.getElementById("info").innerHTML = xhr.responseText;
+	    refresh();
+        }
+        else{
+            document.getElementById("info").innerHTML = "Error " + xhr.status;
+        }
+    }
+    xhr.onerror = function() {
+        document.getElementById("info").innerHTML = "Error: No response from server.";
+    }
+
+    var url = "/upload/send/";
+    xhr.open('POST', url);
+    var csrf_token = document.getElementsByName("csrfmiddlewaretoken")[0].value;
+    xhr.setRequestHeader("X-CSRFToken", csrf_token );
+    xhr.send(fd);
+
+    //reset
+    input.value = "";   
+
+}
+</script>
+
+</html>
