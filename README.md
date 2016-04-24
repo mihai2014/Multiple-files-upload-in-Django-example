@@ -15,4 +15,4 @@ Django example module with a photo gallery and input file with multiple selectio
     url(r'^upload/send/$', upload.send),
     url(r'^upload/list/$', upload.list),
 
-4)Access: 127.0.0.1:8000/upload/
+4) Access: 127.0.0.1:8000/upload/
